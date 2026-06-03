@@ -1,13 +1,22 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { getCompanyKnowledge } from "./knowledge.js";
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
-<<<<<<< HEAD
-const FORBIDDEN_REPLY =
+if (!GEMINI_API_KEY) {
+  console.error("GEMINI_API_KEY не найден. Проверьте .env или Environment Variables на Render.");
+}
+
+const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+
+const model = genAI.getGenerativeModel({
+  model: "gemini-1.5-flash",
+});
+
+export const FORBIDDEN_REPLY =
   "Я могу помочь только с вопросами, связанными с компанией Центр Красок #1, подбором красок, покрытий, материалами, услугами, контактами и консультацией по ремонту.";
 
-const CONSULTATION_REPLY = `Конечно, помогу подобрать подходящий материал.
+export const CONSULTATION_REPLY = `Конечно, помогу подобрать подходящий материал.
 
 Ответьте, пожалуйста, на несколько вопросов:
 
@@ -19,12 +28,8 @@ const CONSULTATION_REPLY = `Конечно, помогу подобрать по
 
 После этого я подскажу, какой тип краски или покрытия лучше выбрать.`;
 
-function normalizeText(text) {
-  return String(text || "").toLowerCase().trim();
-}
-
 export function isProgrammingRequest(text) {
-  const lower = normalizeText(text);
+  const lower = text.toLowerCase();
 
   const programmingWords = [
     "python",
@@ -51,14 +56,17 @@ export function isProgrammingRequest(text) {
     "домашка",
     "лабораторная",
     "курсовая",
-    "диплом"
+    "диплом",
+    "sql",
+    "database",
+    "база данных"
   ];
 
   return programmingWords.some((word) => lower.includes(word));
 }
 
 export function isClearlyForbiddenTopic(text) {
-  const lower = normalizeText(text);
+  const lower = text.toLowerCase();
 
   const forbiddenWords = [
     "ставка",
@@ -66,6 +74,7 @@ export function isClearlyForbiddenTopic(text) {
     "коэффициент",
     "футбол",
     "теннис",
+    "баскетбол",
     "политика",
     "религия",
     "болезнь",
@@ -75,16 +84,20 @@ export function isClearlyForbiddenTopic(text) {
     "кредит",
     "инвестиции",
     "крипта",
+    "биткоин",
     "отношения",
     "девушка",
-    "парень"
+    "парень",
+    "экзамен",
+    "тест",
+    "собеседование"
   ];
 
   return forbiddenWords.some((word) => lower.includes(word));
 }
 
 export function isConsultationRequest(text) {
-  const lower = normalizeText(text);
+  const lower = text.toLowerCase();
 
   const phrases = [
     "помоги выбрать",
@@ -101,93 +114,63 @@ export function isConsultationRequest(text) {
     "нужна консультация",
     "помоги подобрать",
     "выбрать краску",
-    "подобрать краску"
+    "подобрать краску",
+    "что лучше для стен",
+    "что лучше для фасада",
+    "какая краска лучше",
+    "какое покрытие лучше"
   ];
 
   return phrases.some((phrase) => lower.includes(phrase));
 }
 
-export { FORBIDDEN_REPLY, CONSULTATION_REPLY };
-
-=======
->>>>>>> 15bfcbf330660bba0453a1366bce61f59d28eba4
-export async function generateCompanyAnswer(userMessage, history = []) {
-  const companyKnowledge = getCompanyKnowledge();
-
-  if (!process.env.GEMINI_API_KEY) {
-    return "Gemini API key не найден. Проверьте файл .env и добавьте GEMINI_API_KEY.";
+function formatHistory(history = []) {
+  if (!history || history.length === 0) {
+    return "Истории диалога пока нет.";
   }
 
-<<<<<<< HEAD
-  if (isProgrammingRequest(userMessage) || isClearlyForbiddenTopic(userMessage)) {
-    return FORBIDDEN_REPLY;
-  }
-
-  if (isConsultationRequest(userMessage)) {
-    return CONSULTATION_REPLY;
-  }
-
-  const model = genAI.getGenerativeModel({
-    model: "gemini-1.5-flash",
-    generationConfig: {
-      temperature: 0.35,
-      maxOutputTokens: 650,
-    },
-  });
-=======
-  const model = genAI.getGenerativeModel({
-  model: "gemini-2.5-flash",
-  generationConfig: {
-    temperature: 0.2,
-    maxOutputTokens: 700,
-  },
-});
->>>>>>> 15bfcbf330660bba0453a1366bce61f59d28eba4
-
-  const formattedHistory = history
-    .map((message) => {
-      if (message.role === "user") {
-        return `Пользователь: ${message.content}`;
+  return history
+    .map((item) => {
+      if (item.role === "user") {
+        return `Клиент: ${item.content}`;
       }
 
-      if (message.role === "assistant") {
-        return `Ассистент: ${message.content}`;
-      }
-
-      return "";
+      return `Ассистент: ${item.content}`;
     })
-    .filter(Boolean)
     .join("\n");
+}
 
-  const prompt = `
-<<<<<<< HEAD
+function buildPrompt(userMessage, history = []) {
+  const companyKnowledge = getCompanyKnowledge();
+  const dialogHistory = formatHistory(history);
+
+  return `
 Ты — AI-консультант компании "Центр Красок #1" в Telegram.
 
-Твоя задача — помогать клиентам по вопросам компании, красок, покрытий, ремонта, отделки и подбора материалов.
+Твоя задача — помогать клиентам компании по вопросам:
+- лакокрасочных материалов;
+- интерьерных и фасадных красок;
+- декоративных покрытий;
+- лаков, грунтовок, штукатурок, шпаклевок;
+- материалов для дерева, металла, пола, лестниц и стен;
+- малярных инструментов;
+- подбора краски и покрытий;
+- колеровки;
+- услуг компании;
+- адреса, контактов, сайта и способов связи;
+- общей информации о компании.
 
-Разрешенные темы:
-- компания Центр Красок #1;
-- товары компании;
-- услуги компании;
-- контакты, адрес, сайт, время работы;
-- интерьерные и фасадные краски;
-- декоративные покрытия;
-- лаки, грунтовки, штукатурки, шпаклевки;
-- материалы для дерева, металла, пола, лестниц и стен;
-- малярные инструменты;
-- колеровка красок;
-- консультация по подбору материалов;
-- советы по выбору покрытия для ремонта.
+Ты должен вести себя как живой AI-консультант, а не как сухой справочник.
 
-Стиль общения:
-- отвечай как живой консультант, а не как сухой справочник;
-- будь дружелюбным, понятным и профессиональным;
-- не отвечай слишком длинно;
-- если клиенту нужен подбор, задавай уточняющие вопросы;
-- если данных достаточно, предложи подходящий тип материала;
+Стиль ответа:
+- отвечай дружелюбно, понятно и профессионально;
+- не делай слишком длинные ответы;
+- используй списки, если так удобнее;
 - объясняй простыми словами;
-- не выдумывай точные цены, скидки, остатки на складе и бренды, если они не указаны в базе;
-- если нужна точная информация по наличию или цене, предложи связаться с компанией.
+- если клиент просит подобрать материал, задай уточняющие вопросы;
+- если данных достаточно, предложи подходящий тип материала;
+- не выдумывай точные цены, скидки, остатки на складе и бренды, если их нет в базе знаний;
+- если нужна точная информация по цене или наличию, предложи связаться с компанией.
 
 Строгие ограничения:
 Ты НЕ универсальный ChatGPT.
@@ -198,64 +181,47 @@ export async function generateCompanyAnswer(userMessage, history = []) {
 - решать учебные задания;
 - писать рефераты, сочинения и дипломы;
 - обсуждать ставки, спорт, политику, религию, медицину, финансы, личные отношения;
-- отвечать на темы, не связанные с компанией, красками, ремонтом и отделочными материалами.
+- отвечать на темы, не связанные с компанией, красками, ремонтом, отделкой и материалами.
 
 Если пользователь просит что-то не по теме, ответь только так:
 "${FORBIDDEN_REPLY}"
 
 Важно:
 Даже если пользователь пишет "напиши код про Центр Красок", "сделай сайт для Центр Красок", "напиши Python", "напиши JavaScript", ты должен отказаться.
-=======
-Ты — AI-ассистент компании "Центр Красок #1".
-
-Твоя задача — отвечать пользователю только на основе базы знаний о компании.
-
-Главные правила:
-1. Отвечай только по теме компании "Центр Красок #1".
-2. Не выдумывай факты.
-3. Не придумывай цены, актуальные вакансии, клиентов, владельцев, зарплаты, технологии или сотрудников.
-4. Если информации нет в базе знаний, честно скажи: "В открытых данных компании такой информации нет."
-5. Если вопрос не связан с компанией, скажи: "Я могу отвечать только на вопросы, связанные с компанией Центр Красок #1, её товарами, услугами, контактами и открытой информацией."
-6. Отвечай вежливо, понятно и кратко.
-7. Если пользователь спрашивает про вакансии, скажи, что актуальные вакансии нужно проверять на hh.kz или связываться с компанией напрямую.
-8. Если пользователь спрашивает про технологии, не называй конкретные языки программирования, CRM или базы данных, если их нет в базе знаний.
-9. Не отвечай на вопросы про программирование, учебу, политику, личные темы и всё, что не относится к компании.
-10. Ответ должен быть на русском языке.
->>>>>>> 15bfcbf330660bba0453a1366bce61f59d28eba4
 
 База знаний о компании:
 ${companyKnowledge}
 
-Контекст последних сообщений:
-${formattedHistory || "Контекста пока нет."}
+История последних сообщений:
+${dialogHistory}
 
-Вопрос пользователя:
+Новое сообщение клиента:
 ${userMessage}
 
-<<<<<<< HEAD
-Сформируй ответ на русском языке:
-=======
-Сформируй ответ:
->>>>>>> 15bfcbf330660bba0453a1366bce61f59d28eba4
+Ответь как AI-консультант компании Центр Красок #1.
+Не выходи за ограничения.
 `;
+}
+
+export async function generateCompanyAnswer(userMessage, history = []) {
+  if (!GEMINI_API_KEY) {
+    return "Сейчас AI-модель не настроена. Проверьте GEMINI_API_KEY в переменных окружения.";
+  }
 
   try {
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const answer = response.text();
+    const prompt = buildPrompt(userMessage, history);
 
-    if (!answer) {
-      return "Не удалось сформировать ответ. Попробуйте задать вопрос ещё раз.";
+    const result = await model.generateContent(prompt);
+    const response = result.response.text();
+
+    if (!response || response.trim().length === 0) {
+      return "Извините, сейчас не удалось подготовить ответ. Попробуйте задать вопрос чуть подробнее.";
     }
 
-    return answer.trim();
+    return response.trim();
   } catch (error) {
-    console.error("Gemini API error:", error);
+    console.error("Gemini error:", error);
 
     return "Произошла ошибка при обращении к AI-модели Gemini. Проверьте API-ключ или попробуйте позже.";
   }
-<<<<<<< HEAD
 }
-=======
-}
->>>>>>> 15bfcbf330660bba0453a1366bce61f59d28eba4
