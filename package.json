@@ -1,0 +1,30 @@
+{
+  "name": "ai-telegram-company-assistant",
+  "version": "1.0.0",
+  "description": "AI Telegram assistant for company questions based on structured knowledge base",
+  "main": "src/bot.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/bot.js",
+    "dev": "nodemon src/bot.js"
+  },
+  "keywords": [
+    "telegram-bot",
+    "ai-assistant",
+    "openai",
+    "nodejs",
+    "telegraf"
+  ],
+  "author": "Emir Kamilov",
+  "license": "ISC",
+  "dependencies": {
+    "@google/generative-ai": "^0.24.1",
+    "dotenv": "^16.0.0",
+    "express": "^4.0.0",
+    "openai": "^4.0.0",
+    "telegraf": "^4.0.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.0"
+  }
+}
