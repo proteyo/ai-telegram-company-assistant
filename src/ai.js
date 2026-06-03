@@ -220,8 +220,9 @@ export async function generateCompanyAnswer(userMessage, history = []) {
 
     return response.trim();
   } catch (error) {
-    console.error("Gemini error:", error);
-
+console.error("Gemini error full:", error);
+console.error("Gemini error message:", error.message);
+console.error("Gemini error status:", error.status);
     return "Произошла ошибка при обращении к AI-модели Gemini. Проверьте API-ключ или попробуйте позже.";
   }
 }
