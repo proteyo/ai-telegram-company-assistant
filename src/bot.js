@@ -1,5 +1,6 @@
 import "dotenv/config";
 import { Telegraf } from "telegraf";
+<<<<<<< HEAD
 import {
   CONSULTATION_REPLY,
   FORBIDDEN_REPLY,
@@ -8,6 +9,9 @@ import {
   isConsultationRequest,
   isProgrammingRequest,
 } from "./ai.js";
+=======
+import { generateCompanyAnswer } from "./ai.js";
+>>>>>>> 15bfcbf330660bba0453a1366bce61f59d28eba4
 import { startServer } from "./server.js";
 
 const BOT_TOKEN = process.env.BOT_TOKEN;
@@ -19,6 +23,7 @@ if (!BOT_TOKEN) {
 
 const bot = new Telegraf(BOT_TOKEN);
 
+<<<<<<< HEAD
 const userSessions = new Map();
 
 const START_REPLY = `Здравствуйте! Я AI-ассистент компании Центр Красок #1.
@@ -102,6 +107,11 @@ const PRODUCTS_REPLY = `В Центре Красок #1 можно найти м
 
 Для точного подбора напишите, что именно вы хотите покрасить и где будет использоваться материал.`;
 
+=======
+// Простая память диалога для каждого пользователя
+const userSessions = new Map();
+
+>>>>>>> 15bfcbf330660bba0453a1366bce61f59d28eba4
 function getUserHistory(userId) {
   if (!userSessions.has(userId)) {
     userSessions.set(userId, []);
@@ -123,13 +133,20 @@ function updateUserHistory(userId, userMessage, botAnswer) {
     content: botAnswer,
   });
 
+<<<<<<< HEAD
   if (history.length > 8) {
     history.splice(0, history.length - 8);
+=======
+  // Храним только последние 6 сообщений, чтобы не перегружать AI
+  if (history.length > 6) {
+    history.splice(0, history.length - 6);
+>>>>>>> 15bfcbf330660bba0453a1366bce61f59d28eba4
   }
 
   userSessions.set(userId, history);
 }
 
+<<<<<<< HEAD
 async function sendAndRemember(ctx, userMessage, answer) {
   const userId = ctx.from.id;
   updateUserHistory(userId, userMessage, answer);
@@ -166,11 +183,22 @@ bot.command("consultation", async (ctx) => {
 
 bot.on("text", async (ctx) => {
   const userMessage = ctx.message.text.trim();
+=======
+bot.start(async (ctx) => {
+  await ctx.reply(
+    "Здравствуйте! Я AI-ассистент компании Центр Красок #1. Вы можете задать мне вопрос о компании, товарах, услугах, контактах, адресе или открытой информации."
+  );
+});
+
+bot.on("text", async (ctx) => {
+  const userMessage = ctx.message.text;
+>>>>>>> 15bfcbf330660bba0453a1366bce61f59d28eba4
   const userId = ctx.from.id;
 
   try {
     await ctx.sendChatAction("typing");
 
+<<<<<<< HEAD
     if (isProgrammingRequest(userMessage) || isClearlyForbiddenTopic(userMessage)) {
       await sendAndRemember(ctx, userMessage, FORBIDDEN_REPLY);
       return;
@@ -185,6 +213,15 @@ bot.on("text", async (ctx) => {
     const answer = await generateCompanyAnswer(userMessage, history);
 
     await sendAndRemember(ctx, userMessage, answer);
+=======
+    const history = getUserHistory(userId);
+
+    const answer = await generateCompanyAnswer(userMessage, history);
+
+    updateUserHistory(userId, userMessage, answer);
+
+    await ctx.reply(answer);
+>>>>>>> 15bfcbf330660bba0453a1366bce61f59d28eba4
   } catch (error) {
     console.error("Bot error:", error);
 
@@ -212,4 +249,8 @@ startServer();
 
 bot.launch();
 
+<<<<<<< HEAD
 console.log("Telegram bot is running...");
+=======
+console.log("Telegram bot is running...");
+>>>>>>> 15bfcbf330660bba0453a1366bce61f59d28eba4
